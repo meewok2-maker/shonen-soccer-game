@@ -8,26 +8,17 @@ export default class Striker {
         // Create a container to hold all visual elements
         this.container = scene.add.container(x, y);
 
-        // Create unique texture key for this instance
-        const textureKey = `striker-${Date.now()}-${Math.random()}`;
-
-        // Only generate texture if it doesn't exist
-        if (!scene.textures.exists(textureKey)) {
-            const graphics = scene.add.graphics();
-            this.drawCharacter(graphics);
-            graphics.generateTexture(textureKey, 50, 70);
-            graphics.destroy();
-        }
-
-        // Create sprite from the generated texture
-        this.sprite = scene.add.sprite(0, 0, textureKey);
+        // Create sprite from sprite sheet
+        this.sprite = scene.add.sprite(0, 0, 'striker-sheet');
+        this.sprite.setScale(1);
+        this.sprite.play('striker-idle');
         this.container.add(this.sprite);
 
         // Physics body on the container
         scene.physics.add.existing(this.container);
         this.container.body.setCollideWorldBounds(true);
         this.container.body.setSize(40, 60);
-        this.container.body.setOffset(-20, -35);
+        this.container.body.setOffset(-20, -30);
 
         // Set depth to be visible
         this.container.setDepth(75);
@@ -53,37 +44,24 @@ export default class Striker {
         // Projectiles group (regular group - NOT physics group, to avoid resetting ball body config)
         this.projectiles = scene.add.group();
 
-        // Aura effect
-        this.aura = scene.add.circle(0, 0, 35, 0xff6b6b, 0.2);
-        this.container.add(this.aura);
-        scene.tweens.add({
-            targets: this.aura,
-            scaleX: 1.3,
-            scaleY: 1.3,
-            alpha: 0.1,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
-
         // Health system
         this.health = 100;
         this.maxHealth = 100;
         this.isInvincible = false;
 
-        // Health bar (above label)
+        // Health bar (above sprite)
         this.healthBarBg = scene.add.graphics();
         this.healthBarBg.fillStyle(0x330000, 0.8);
-        this.healthBarBg.fillRect(-20, -65, 40, 5);
+        this.healthBarBg.fillRect(-20, -60, 40, 5);
         this.container.add(this.healthBarBg);
 
         this.healthBarFg = scene.add.graphics();
         this.healthBarFg.fillStyle(0x00ff00, 1);
-        this.healthBarFg.fillRect(-20, -65, 40, 5);
+        this.healthBarFg.fillRect(-20, -60, 40, 5);
         this.container.add(this.healthBarFg);
 
         // Label
-        this.label = scene.add.text(0, -50, isRemote ? 'STRIKER P2' : 'STRIKER P1', {
+        this.label = scene.add.text(0, -70, isRemote ? 'STRIKER P2' : 'STRIKER P1', {
             font: 'bold 14px Arial',
             fill: '#ff6b6b',
             stroke: '#000000',
@@ -91,35 +69,9 @@ export default class Striker {
         });
         this.label.setOrigin(0.5);
         this.container.add(this.label);
-    }
 
-    drawCharacter(graphics) {
-        // Head (skin tone)
-        graphics.fillStyle(0xffdbac, 1);
-        graphics.fillCircle(25, 15, 15);
-
-        // Body (red jersey - striker colors)
-        graphics.fillStyle(0xff1744, 1);
-        graphics.fillRect(10, 30, 30, 35);
-
-        // Legs (shorts)
-        graphics.fillStyle(0x000000, 1);
-        graphics.fillRect(13, 65, 10, 5);
-        graphics.fillRect(27, 65, 10, 5);
-
-        // Hair (anime style - spiky)
-        graphics.fillStyle(0x2196f3, 1);
-        graphics.fillCircle(20, 5, 8);
-        graphics.fillCircle(30, 5, 8);
-        graphics.fillCircle(25, 3, 8);
-
-        // Eyes (simple anime eyes)
-        graphics.fillStyle(0xffffff, 1);
-        graphics.fillCircle(20, 15, 3);
-        graphics.fillCircle(30, 15, 3);
-        graphics.fillStyle(0x000000, 1);
-        graphics.fillCircle(20, 15, 2);
-        graphics.fillCircle(30, 15, 2);
+        // Track animation state
+        this.isAttacking = false;
     }
 
     update() {
@@ -143,9 +95,23 @@ export default class Striker {
 
             this.container.body.setVelocity(velocityX, velocityY);
 
+            // Animation state (don't interrupt attack animation)
+            if (!this.isAttacking) {
+                if (velocityX !== 0 || velocityY !== 0) {
+                    this.playAnim('striker-run');
+                    // Flip sprite based on horizontal direction
+                    if (velocityX < 0) {
+                        this.sprite.setFlipX(true);
+                    } else if (velocityX > 0) {
+                        this.sprite.setFlipX(false);
+                    }
+                } else {
+                    this.playAnim('striker-idle');
+                }
+            }
+
             // Shooting
             if (this.cursors.shoot.isDown && this.canShoot) {
-                console.log('🎯 Striker shooting!');
                 this.shoot();
             }
 
@@ -160,14 +126,37 @@ export default class Striker {
         }
     }
 
+    playAnim(key) {
+        if (this.sprite.anims.currentAnim?.key !== key) {
+            this.sprite.play(key);
+        }
+    }
+
     // Update position from network (for remote players)
     setPosition(x, y) {
+        // Determine movement direction for animation
+        const dx = x - this.container.x;
+        if (!this.isAttacking) {
+            if (Math.abs(dx) > 1) {
+                this.playAnim('striker-run');
+                this.sprite.setFlipX(dx < 0);
+            } else {
+                this.playAnim('striker-idle');
+            }
+        }
         this.container.x = x;
         this.container.y = y;
     }
 
     shoot() {
         this.canShoot = false;
+
+        // Play attack animation
+        this.isAttacking = true;
+        this.sprite.play('striker-attack');
+        this.sprite.once('animationcomplete', () => {
+            this.isAttacking = false;
+        });
 
         // Get the current world position of the striker
         const worldX = this.container.x;
@@ -196,7 +185,6 @@ export default class Striker {
         this.scene.time.delayedCall(2000, () => {
             if (ball && ball.active) {
                 ball.destroy();
-                console.log('⚽ Ball destroyed');
             }
         });
 
@@ -209,18 +197,17 @@ export default class Striker {
         if (this.scene.socket) {
             this.scene.socket.emit('playerShoot', { x: worldX, y: worldY });
         }
-
-        // Visual feedback
-        this.aura.setAlpha(0.5);
-        this.scene.tweens.add({
-            targets: this.aura,
-            alpha: 0.2,
-            duration: 200
-        });
     }
 
     // Create a visual-only ball for remote player's shoot (seen by other players)
     shootRemote(x, y) {
+        // Play attack animation on remote sprite
+        this.isAttacking = true;
+        this.sprite.play('striker-attack');
+        this.sprite.once('animationcomplete', () => {
+            this.isAttacking = false;
+        });
+
         if (!this.scene.textures.exists('ball')) {
             const graphics = this.scene.add.graphics();
             graphics.fillStyle(0xffffff, 1);
@@ -249,7 +236,14 @@ export default class Striker {
         this.health = Math.max(0, this.health - amount);
         this.updateHealthBar();
 
-        // Flash effect
+        // Play hurt animation
+        this.isAttacking = true;
+        this.sprite.play('striker-hurt');
+        this.sprite.once('animationcomplete', () => {
+            this.isAttacking = false;
+        });
+
+        // Invincibility with flash
         this.isInvincible = true;
         this.scene.tweens.add({
             targets: this.sprite,
@@ -282,7 +276,7 @@ export default class Striker {
         if (ratio < 0.3) color = 0xff0000;
         else if (ratio < 0.6) color = 0xffaa00;
         this.healthBarFg.fillStyle(color, 1);
-        this.healthBarFg.fillRect(-20, -65, 40 * ratio, 5);
+        this.healthBarFg.fillRect(-20, -60, 40 * ratio, 5);
     }
 
     respawn(x, y) {
@@ -291,7 +285,9 @@ export default class Striker {
         this.container.x = x;
         this.container.y = y;
         this.isInvincible = false;
+        this.isAttacking = false;
         this.sprite.setAlpha(1);
+        this.sprite.play('striker-idle');
     }
 
     destroy() {
