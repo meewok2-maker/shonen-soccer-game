@@ -23,9 +23,13 @@ describe('BootScene', () => {
             expect(bootScene.load.on).toHaveBeenCalledWith('progress', expect.any(Function));
         });
 
-        it('loads placeholder image asset', () => {
+        it('loads striker atlas', () => {
             bootScene.preload();
-            expect(bootScene.load.image).toHaveBeenCalledWith('temp-player', expect.any(String));
+            expect(bootScene.load.atlas).toHaveBeenCalledWith(
+                'striker-sheet',
+                '/assets/sprite-sheet-striker.png',
+                '/assets/striker-atlas.json'
+            );
         });
 
         it('creates progress bar graphics', () => {
@@ -38,6 +42,19 @@ describe('BootScene', () => {
         it('transitions to MainMenuScene', () => {
             bootScene.create();
             expect(bootScene.scene.start).toHaveBeenCalledWith('MainMenuScene');
+        });
+
+        it('creates striker animations', () => {
+            bootScene.create();
+            expect(bootScene.anims.create).toHaveBeenCalledWith(
+                expect.objectContaining({ key: 'striker-idle' })
+            );
+            expect(bootScene.anims.create).toHaveBeenCalledWith(
+                expect.objectContaining({ key: 'striker-attack' })
+            );
+            expect(bootScene.anims.create).toHaveBeenCalledWith(
+                expect.objectContaining({ key: 'striker-hurt' })
+            );
         });
     });
 });

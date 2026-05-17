@@ -42,6 +42,12 @@ export function createMockScene() {
                 x, y, key,
                 setDepth: vi.fn(),
                 setOrigin: vi.fn(),
+                setScale: vi.fn(),
+                setFlipX: vi.fn(),
+                setAlpha: vi.fn(),
+                play: vi.fn(),
+                once: vi.fn((event, cb) => cb && cb()),
+                anims: { currentAnim: null },
                 body: {
                     setAllowGravity: vi.fn(),
                     setCollideWorldBounds: vi.fn(),
@@ -59,6 +65,11 @@ export function createMockScene() {
                 destroy: vi.fn(),
             })),
             star: vi.fn(() => ({ destroy: vi.fn() })),
+            group: vi.fn(() => ({
+                add: vi.fn(),
+                remove: vi.fn(),
+                clear: vi.fn(),
+            })),
             text: vi.fn((x, y, text, style) => ({
                 x, y, text,
                 setOrigin: vi.fn().mockReturnThis(),
@@ -147,6 +158,12 @@ export function createMockScene() {
         load: {
             on: vi.fn(),
             image: vi.fn(),
+            spritesheet: vi.fn(),
+            atlas: vi.fn(),
+        },
+        anims: {
+            create: vi.fn(),
+            generateFrameNumbers: vi.fn(() => []),
         },
         scene: {
             start: vi.fn(),

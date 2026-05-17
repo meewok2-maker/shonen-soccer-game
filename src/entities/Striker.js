@@ -8,8 +8,8 @@ export default class Striker {
         // Create a container to hold all visual elements
         this.container = scene.add.container(x, y);
 
-        // Create sprite from sprite sheet
-        this.sprite = scene.add.sprite(0, 0, 'striker-sheet');
+        // Create sprite from atlas
+        this.sprite = scene.add.sprite(0, 0, 'striker-sheet', 'idle_0');
         this.sprite.setScale(1);
         this.sprite.play('striker-idle');
         this.container.add(this.sprite);

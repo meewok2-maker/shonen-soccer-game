@@ -39,7 +39,7 @@ describe('Striker', () => {
             const striker = new Striker(scene, 100, 200);
             expect(scene.physics.add.existing).toHaveBeenCalledWith(striker.container);
             expect(striker.container.body.setSize).toHaveBeenCalledWith(40, 60);
-            expect(striker.container.body.setOffset).toHaveBeenCalledWith(-20, -35);
+            expect(striker.container.body.setOffset).toHaveBeenCalledWith(-20, -30);
         });
 
         it('sets depth to 75', () => {
@@ -47,9 +47,21 @@ describe('Striker', () => {
             expect(striker.container.setDepth).toHaveBeenCalledWith(75);
         });
 
-        it('creates projectiles physics group', () => {
+        it('creates projectiles group', () => {
             new Striker(scene, 100, 200);
-            expect(scene.physics.add.group).toHaveBeenCalled();
+            expect(scene.add.group).toHaveBeenCalled();
+        });
+
+        it('creates sprite from atlas', () => {
+            new Striker(scene, 100, 200);
+            expect(scene.add.sprite).toHaveBeenCalledWith(0, 0, 'striker-sheet', 'idle_0');
+        });
+
+        it('initializes health system', () => {
+            const striker = new Striker(scene, 100, 200);
+            expect(striker.health).toBe(100);
+            expect(striker.maxHealth).toBe(100);
+            expect(striker.isInvincible).toBe(false);
         });
     });
 
@@ -121,6 +133,12 @@ describe('Striker', () => {
             const calls = scene.time.delayedCall.mock.calls;
             const cooldownCall = calls.find(c => c[0] === 300);
             expect(cooldownCall).toBeDefined();
+        });
+
+        it('plays attack animation', () => {
+            const striker = new Striker(scene, 100, 200);
+            striker.shoot();
+            expect(striker.sprite.play).toHaveBeenCalledWith('striker-attack');
         });
     });
 
