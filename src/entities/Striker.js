@@ -279,6 +279,15 @@ export default class Striker {
         this.healthBarFg.fillRect(-20, -60, 40 * ratio, 5);
     }
 
+    playDeathAnimation(onComplete) {
+        this.isAttacking = true;
+        this.sprite.play('striker-death');
+        this.sprite.once('animationcomplete', () => {
+            this.isAttacking = false;
+            if (onComplete) onComplete();
+        });
+    }
+
     respawn(x, y) {
         this.health = this.maxHealth;
         this.updateHealthBar();

@@ -825,24 +825,28 @@ export default class GameScene extends Phaser.Scene {
 
         this.cameras.main.shake(500, 0.03);
 
-        // Hide player temporarily
-        this.myPlayer.container.setVisible(false);
+        // Disable physics so enemy can't hit again
         this.myPlayer.container.body.enable = false;
 
-        // Respawn after 3 seconds
-        this.time.delayedCall(3000, () => {
-            if (this.myPlayer) {
-                const startX = this.myRole === 'striker' ? 300 : 200;
-                this.myPlayer.respawn(startX, 360);
-                this.myPlayer.container.setVisible(true);
-                this.myPlayer.container.body.enable = true;
+        // Play death animation, then hide and respawn
+        this.myPlayer.playDeathAnimation(() => {
+            this.myPlayer.container.setVisible(false);
 
-                // Sync respawn health to other player
-                if (this.socket) {
-                    this.socket.emit('playerDamaged', { health: this.myPlayer.health });
+            // Respawn after a delay
+            this.time.delayedCall(2000, () => {
+                if (this.myPlayer) {
+                    const startX = this.myRole === 'striker' ? 300 : 200;
+                    this.myPlayer.respawn(startX, 360);
+                    this.myPlayer.container.setVisible(true);
+                    this.myPlayer.container.body.enable = true;
+
+                    // Sync respawn health to other player
+                    if (this.socket) {
+                        this.socket.emit('playerDamaged', { health: this.myPlayer.health });
+                    }
                 }
-            }
-            deathText.destroy();
+                deathText.destroy();
+            });
         });
     }
 }

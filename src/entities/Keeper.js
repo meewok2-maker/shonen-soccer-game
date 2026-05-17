@@ -292,6 +292,19 @@ export default class Keeper {
         this.healthBarFg.fillRect(-20, -65, 40 * ratio, 5);
     }
 
+    playDeathAnimation(onComplete) {
+        // Fade out as death animation (no sprite sheet for keeper yet)
+        this.scene.tweens.add({
+            targets: this.container,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => {
+                this.container.setAlpha(1);
+                if (onComplete) onComplete();
+            }
+        });
+    }
+
     respawn(x, y) {
         this.health = this.maxHealth;
         this.updateHealthBar();
